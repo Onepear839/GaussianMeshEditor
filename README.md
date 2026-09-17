@@ -1,148 +1,270 @@
 # Gaussian Mesh Editor
 
-A Blender add-on that aligns, fits and deforms 3D Gaussian Splatting scenes through a **proxy mesh**, built as an independent companion module for [KIRI 3DGS Render](https://github.com/xiaolongyuan/KIRI3DGS) (the KIRI add-on itself is never modified).
+A Blender add-on for **proxy-mesh-based editing of 3D Gaussian Splatting (3DGS) scenes**.
 
-It includes a faithful re-implementation of the **deformation module** of the paper:
+Gaussian Mesh Editor is designed as an independent companion tool for [KIRI 3DGS Render](https://github.com/xiaolongyuan/KIRI3DGS). It communicates with KIRI through Blender-side data and does **not modify KIRI's source code**.
 
-> **UniMGS: Unifying Mesh and 3D Gaussian Splatting with Single-Pass Rasterization and Proxy-Based Deformation**
-> Zeyu Xiao, Mingyang Sun, Yimin Cong, Lintao Wang, Dongliang Kou, Zhenyi Wu, Dingkang Yang, Peng Zhai, Zeyu Wang, Lihua Zhang
+The project currently focuses on reproducing and engineering the **proxy-based Gaussian deformation pipeline described in UniMGS**, while providing a practical Blender workflow for alignment, proxy fitting, Gaussian binding, and deformation.
+
+> **UniMGS: Unifying Mesh and 3D Gaussian Splatting with Single-Pass Rasterization and Proxy-Based Deformation**  
+> Zeyu Xiao, Mingyang Sun, Yimin Cong, Lintao Wang, Dongliang Kou, Zhenyi Wu, Dingkang Yang, Peng Zhai, Zeyu Wang, Lihua Zhang  
 > AAAI 2026 · [arXiv:2601.19233](https://arxiv.org/html/2601.19233)
 
 ![Pipeline](docs/images/pipeline.svg)
 
+## Project Status
+
+**Current stage: practical UniMGS deformation reproduction + Blender editing prototype.**
+
+The implementation covers the proxy-based deformation part of the UniMGS pipeline. It does **not** reproduce the paper's complete single-pass mesh + 3DGS rasterizer.
+
+Some parts of the current implementation are engineering approximations rather than exact reproductions of the original research code. In particular:
+
+- the default binding cameras are Blender scene cameras plus virtual surround cameras;
+- the local vertex deformation-gradient calculation is an ACAP-inspired approximation rather than a full global ACAP implementation;
+- Gaussian BBX size is controlled by an implementation parameter and is not claimed to be specified by the paper.
+
+These distinctions are documented so that the project can be used both as a practical Blender tool and as a reproducible research baseline.
+
 ## Features
 
-- **Proxy-mesh workflow** — designate any scene mesh as a proxy, rough-align it onto the Gaussian cloud (center + uniform scale), then fine-tune with the native `G / R / S` tools.
-- **Subdivide & Fit** — linear subdivision plus iterative vertex fitting onto the splat cloud (`NEAREST` snap or `PLANE` tangent-plane projection with Laplacian smoothing).
-- **UniMGS reproduction** — Gaussian-centric bounding-box (BBX) ray binding and proxy-based deformation transfer (paper Eq. 12/13), with covariance re-factorization matching KIRI's `(quaternion, linear scale)` layout.
-- **Live Auto-Follow** — while you drag the proxy mesh in Edit Mode, bound Gaussians follow in real time (depsgraph handler + poll timer).
-- **Optional GPU acceleration** — the per-vertex deformation-gradient stage (the slowest part of Eq. 12) runs as a GLSL compute shader, with automatic CPU fallback.
-- **KIRI integrated, not coupled** — Gaussian objects are detected by data (`is_gaussian_splat` / `f_dc_0`), so the add-on installs and runs even when KIRI is absent.
-- **Pure-NumPy core** — the entire `unimags` package is `bpy`-free and unit-testable outside Blender.
+- **Proxy-mesh workflow** — designate a scene mesh as a proxy, roughly align it to the Gaussian cloud, then refine it using Blender's native `G / R / S` tools.
+- **Subdivide & Fit** — subdivide the proxy and fit its vertices to the Gaussian surface using `NEAREST` or tangent-plane (`PLANE`) projection with optional Laplacian smoothing.
+- **Gaussian-centric binding** — construct Gaussian BBX corners and associate them with proxy-mesh faces through camera-ray BVH intersection.
+- **Proxy-based deformation** — transfer proxy-mesh deformation to Gaussian position, rotation, and scale using the UniMGS-style Eq. 12 / Eq. 13 formulation.
+- **Covariance propagation** — propagate Gaussian covariance through the estimated deformation and convert it back to KIRI's quaternion + linear-scale representation.
+- **Live Auto-Follow** — optionally update bound Gaussians while editing the proxy mesh.
+- **Optional GPU acceleration** — accelerate the per-vertex deformation-gradient stage with a GLSL compute shader, with CPU fallback.
+- **KIRI interoperability** — communicate with KIRI through Blender data structures without modifying the KIRI add-on.
+- **Pure-NumPy core** — the `unimags` package is designed to remain independent of `bpy` where possible, making numerical components easier to test.
 
 ## Requirements
 
 | Component | Version |
 | --- | --- |
-| Blender | ≥ 5.1 (tested on 5.2 LTS) |
-| Python | ≥ 3.10 (bundled with Blender) |
-| NumPy | bundled with Blender |
-| KIRI 3DGS Render | optional, ≥ 5.1 (needed for rendering/importing Gaussian data) |
+| Blender | ≥ 5.1 (tested on Blender 5.2 LTS) |
+| Python | Blender's bundled Python |
+| NumPy | Blender's bundled NumPy |
+| KIRI 3DGS Render | Optional; required for the KIRI-based Gaussian import/render workflow |
+
+KIRI is not required for the numerical `unimags` components themselves.
 
 ## Installation
 
-### As a Blender extension (recommended, Blender 4.2+)
+### Blender Extension
 
-1. Download the latest release zip (`gaussian_mesh_editor_<version>.zip`).
-2. In Blender: **Edit → Preferences → Get Extensions → Install from Disk...** (or drag the zip onto the Extensions window).
-3. Enable **Gaussian Mesh Editor** in the *Add-ons* tab.
+1. Download a release package containing the `gaussian_mesh_editor/` add-on.
+2. In Blender, open **Edit → Preferences → Get Extensions → Install from Disk...**.
+3. Select the extension ZIP and enable **Gaussian Mesh Editor**.
 
-### As a legacy add-on
+### Legacy Add-on Installation
 
-1. Unzip `gaussian_mesh_editor/` into your Blender add-ons directory (see the [installation docs](docs/installation.md) for exact paths).
-2. Enable **Gaussian Mesh Editor** in **Edit → Preferences → Add-ons**.
+1. Unzip the `gaussian_mesh_editor/` directory into Blender's add-ons directory.
+2. Open **Edit → Preferences → Add-ons**.
+3. Enable **Gaussian Mesh Editor**.
+
+See [docs/installation.md](docs/installation.md) for more details.
 
 ## Quick Start
 
-1. **Import or create a 3DGS scene** with KIRI 3DGS Render (or add a plain mesh with an `f_dc_0` point attribute).
-2. Select a mesh to act as the proxy, click **Set Active as Proxy Mesh**, then **Rough Align**.
-3. Use **Subdivide** and **Fit to Gaussian** to conform the proxy to the splat surface.
-4. Open the **UniMGS Deform** panel, click **Build UniMGS Binding**, then deform:
+1. **Prepare a 3DGS scene**  
+   Import or create a Gaussian scene, for example through KIRI 3DGS Render.
 
-   - Edit the proxy mesh and click **Apply UniMGS Deformation**, or
-   - Enable **Auto Follow (live)** and drag vertices in Edit Mode — Gaussians follow instantly.
+2. **Prepare a proxy mesh**  
+   Select a mesh that approximately represents the geometry of the Gaussian scene and click **Set Active as Proxy Mesh**.
 
-See [docs/usage.md](docs/usage.md) for the full workflow, parameter reference and troubleshooting.
+3. **Roughly align the proxy**  
+   Use **Rough Align** to match the proxy's center and overall scale to the Gaussian cloud. Refine the alignment with Blender's standard transform tools when necessary.
+
+4. **Fit the proxy to the Gaussian surface**  
+   Use **Subdivide** followed by **Fit to Gaussian**. Choose `NEAREST` for direct surface fitting or `PLANE` for tangent-plane projection.
+
+5. **Build the Gaussian–mesh binding**  
+   Open the **UniMGS Deform** panel and run **Build UniMGS Binding**.
+
+6. **Deform the Gaussian scene**  
+   Edit the proxy mesh and either:
+   - click **Apply UniMGS Deformation** to update the Gaussian scene, or
+   - enable **Auto Follow** for interactive proxy editing.
+
+For the complete workflow and parameter descriptions, see [docs/usage.md](docs/usage.md).
 
 ## How It Works
 
-```
-   Gaussian cloud (mu, R, S)
-          │  kiri_bridge reads gaussian_data (world space)
-          ▼
-   ┌─────────────────────────────────────────────────────────┐
-   │ Step 1  BBX         8 oriented corners per Gaussian     │
-   │ Step 2  Cameras     scene cameras + virtual surround    │
-   │ Step 3  Rays        one ray per corner per camera       │
-   │ Step 4  Bind        BVH raycast → closest face + bary   │
-   │ Step 5  Cache       flat NumPy arrays, npz-persisted    │
-   │ Step 6  Mesh deform per-vertex offset → Rⱼ Sⱼ (polar)   │
-   │ Step 7  Corner      barycentric interpolation (Eq. 12)  │
-   │ Step 8  Gaussian    average over 8 corners (Eq. 13)     │
-   │ Step 9  Rot/S       exp(mean log Rᵢ), mean Sᵢ           │
-   │ Step 10 Covariance  R′S′Σ(R′S′)ᵀ → re-factorized        │
-   └─────────────────────────────────────────────────────────┘
-          │  write-back to KIRI runtime cache / IDProperty
-          ▼
-   Viewport renders the deformed Gaussians
+The implementation follows the following high-level deformation pipeline:
+
+```text
+Gaussian cloud
+(mu, R, S / covariance)
+        │
+        ▼
+┌────────────────────────────────────────────────────────────┐
+│ 1. Gaussian BBX                                             │
+│    Construct 8 oriented corners for each Gaussian           │
+│                                                            │
+│ 2. Camera rays                                              │
+│    Generate rays from available scene / surround cameras    │
+│                                                            │
+│ 3. Mesh binding                                             │
+│    BVH raycast each corner and record face + barycentric     │
+│    coordinates                                               │
+│                                                            │
+│ 4. Binding cache                                            │
+│    Store the Gaussian-corner → mesh-face correspondence      │
+│                                                            │
+│ 5. Proxy deformation                                        │
+│    Estimate local vertex deformation and obtain Rⱼ / Sⱼ      │
+│                                                            │
+│ 6. Corner deformation                                       │
+│    Interpolate mesh deformation at each bound corner        │
+│    (UniMGS-style Eq. 12)                                    │
+│                                                            │
+│ 7. Gaussian deformation                                     │
+│    Aggregate the 8 corner transformations                    │
+│    (UniMGS-style Eq. 13)                                    │
+│                                                            │
+│ 8. Covariance update                                        │
+│    Σ' = R'S' Σ (R'S')ᵀ                                      │
+│                                                            │
+│ 9. KIRI write-back                                          │
+│    Convert the updated Gaussian representation back to      │
+│    KIRI-compatible quaternion / scale data                  │
+└────────────────────────────────────────────────────────────┘
+        │
+        ▼
+Deformed Gaussian scene
 ```
 
-The math follows the paper: each Gaussian is spatially associated with the proxy mesh through its 8 BBX corners; deforming the mesh deforms each corner (Eq. 12), and each Gaussian is updated by averaging over its corners (Eq. 13). Full detail: [docs/unimags.md](docs/unimags.md), architecture: [docs/architecture.md](docs/architecture.md).
+The key idea is to associate each Gaussian with the proxy mesh through its **eight BBX corners**. When the proxy deforms, the corresponding mesh transformations are interpolated at those corners and then aggregated to update the Gaussian.
+
+See [docs/unimags.md](docs/unimags.md) for the mathematical details and [docs/architecture.md](docs/architecture.md) for the software architecture.
+
+## Implementation Notes
+
+### Gaussian BBX
+
+Each Gaussian is represented by a center and anisotropic covariance / scale orientation. The implementation constructs eight oriented BBX corners around the Gaussian.
+
+The BBX extent is controlled by an implementation parameter. The current default should be regarded as an **engineering choice**, not as a parameter specified by the UniMGS paper.
+
+### Camera Source
+
+The current Blender implementation uses:
+
+1. available scene cameras; and
+2. virtual surround cameras to improve coverage.
+
+This is intentionally kept behind a camera-source abstraction so that training-camera poses can be introduced later without redesigning the binding pipeline.
+
+### Mesh Deformation
+
+The deformation-transfer stage estimates a local deformation gradient around each proxy vertex and decomposes it into rotational and non-rotational components.
+
+The current implementation is **ACAP-inspired / local**, rather than a claim of reproducing the complete global ACAP optimization used in the original method.
+
+### Partial Binding
+
+Not every Gaussian corner is guaranteed to intersect the proxy mesh. The implementation records per-corner validity and avoids treating an incompletely bound Gaussian as fully reliable.
+
+Binding statistics should therefore be considered an important diagnostic when evaluating a scene.
 
 ## Repository Layout
 
-```
+```text
 gaussian_mesh_editor/
-├── __init__.py            add-on entry, registration, bl_info
-├── blender_manifest.toml  Blender extension manifest
-├── props.py               scene property group
-├── operators.py           all operators (align / fit / UniMGS)
-├── ui.py                  side-panel UI
-├── kiri_bridge.py         KIRI interoperability (data-level detection)
-├── bbox.py                world-space bounds
-├── export.py              OBJ / PLY export with baked world transform
-├── fit.py                 vertex fitting (NEAREST / PLANE)
-├── metrics.py             alignment metrics
-└── unimags/               pure-NumPy UniMGS reproduction (bpy-free)
-    ├── bbx.py             Step 1 — Gaussian BBX corners
-    ├── ray_binding.py     Steps 3–4 — camera rays + BVH binding
-    ├── binding_data.py    Step 5 — binding cache (npz)
-    ├── deformation.py     Steps 6–8 — Eq. 12/13 deformation transfer
-    ├── covariance.py      Step 10 — covariance propagation
-    ├── rotation.py        SO(3) / quaternion math (KIRI conventions)
-    ├── gpu_pipeline.py    optional GLSL compute acceleration
-    ├── auto_follow.py     live deformation driver
-    └── blender.py         bpy glue: scene ⇄ pipeline ⇄ KIRI
-docs/                      architecture, usage, limitations, …
-tests/                     unit + headless integration tests
+├── __init__.py
+├── blender_manifest.toml
+├── props.py
+├── operators.py
+├── ui.py
+├── kiri_bridge.py
+├── bbox.py
+├── export.py
+├── fit.py
+├── metrics.py
+└── unimags/
+    ├── __init__.py
+    ├── bbx.py             Gaussian BBX construction
+    ├── ray_binding.py     Camera rays + BVH binding
+    ├── binding_data.py    Binding cache
+    ├── deformation.py     Deformation transfer / Eq. 12–13
+    ├── covariance.py      Covariance propagation
+    ├── rotation.py        SO(3) / quaternion utilities
+    ├── gpu_pipeline.py    Optional GLSL acceleration
+    ├── auto_follow.py     Live deformation driver
+    └── blender.py         Blender integration
+docs/
+tests/
 ```
 
 ## Testing
 
-The test suite is split into pure-NumPy unit tests (no Blender needed) and headless Blender integration tests.
+The test suite contains pure-NumPy numerical tests and Blender integration tests.
+
+### Pure-NumPy tests
 
 ```bash
-# Pure-NumPy unit tests (plain Python)
 python tests/test_unimags_bbx.py
 python tests/test_unimags_binding_data.py
 python tests/test_unimags_deformation.py
 python tests/test_unimags_ray_binding.py
 python tests/test_unimags_rotation.py
+```
 
-# Headless Blender integration tests
+### Blender integration tests
+
+```bash
 blender.exe -b --python tests/test_unimags_blender.py
 blender.exe -b --python tests/test_unimags_bvh.py
-blender.exe -b --python tests/test_auto_follow.py
-blender.exe -b --python tests/test_binding.py
-blender.exe -b --python tests/test_deform.py
-blender.exe -b --python tests/test_visualize.py
 blender.exe -b --python tests/test_phase6.py
 blender.exe -b --python tests/test_phase7.py
 ```
 
-Every test prints `ok - <description>` per assertion and exits non-zero on failure. See [docs/testing.md](docs/testing.md) for a summary of the verified behavior.
+The test suite is intended to verify numerical components, binding behavior, deformation behavior, and Blender-side integration.
+
+For the current test scope and expected behavior, see [docs/testing.md](docs/testing.md).
 
 ## Limitations
 
-- This add-on re-implements only the **deformation** module of UniMGS; the paper's single-pass mesh+3DGS rasterizer is not included (that part lives in KIRI's renderer).
-- Binding coverage depends on cameras; a single viewport camera only reaches the facing hemisphere, which is why virtual surround cameras are created by default (`Surround Cams`).
-- Gaussian color, opacity and spherical-harmonic coefficients are preserved as-is; only position, rotation and scale are deformed.
+This project should currently be considered a **practical reproduction and editing prototype**, not a complete reimplementation of the entire UniMGS system.
 
-See [docs/limitations.md](docs/limitations.md) for the complete list.
+### Research / algorithmic limitations
+
+- Only the **proxy-based deformation portion** of UniMGS is implemented. The paper's complete single-pass mesh + 3DGS rasterization system is not implemented here.
+- The default camera setup uses Blender scene cameras and virtual surround cameras rather than assuming access to the original 3DGS training-camera set.
+- The current local deformation-gradient stage is ACAP-inspired and should not be described as an exact implementation of the original global ACAP solver.
+- Gaussian BBX extent is an implementation parameter and should be evaluated experimentally rather than treated as a fixed value from the paper.
+- Partial corner binding can affect deformation quality, especially near proxy boundaries, thin structures, or poorly aligned proxy geometry.
+- Gaussian color, opacity, and spherical-harmonic coefficients are currently preserved; the deformation pipeline primarily updates Gaussian position, orientation, and scale/covariance.
+
+### Practical limitations
+
+- Proxy quality and initial alignment have a strong influence on binding quality.
+- Complex topology changes are not currently treated as a general-purpose remeshing problem; cached bindings may need to be rebuilt after topology changes.
+- Auto Follow is intended for interactive editing and should not be confused with the core numerical reproduction.
+- GPU acceleration is an engineering optimization and does not change the intended mathematical formulation.
+
+See [docs/limitations.md](docs/limitations.md) for additional details.
+
+## Research Direction
+
+Gaussian Mesh Editor is structured so that the current UniMGS-style implementation can serve as a **baseline for further research**.
+
+Potential research directions include:
+
+- more robust automatic Gaussian–proxy alignment;
+- training-camera-aware binding;
+- confidence-aware aggregation of the eight Gaussian corners;
+- improved handling of partially bound Gaussians;
+- more accurate or efficient deformation-gradient estimation;
+- fine-grained local editing of human and facial Gaussian scenes;
+- quantitative comparison between different binding and deformation strategies.
+
+These are research directions rather than claims of novelty in the current release.
 
 ## Citation
 
-If you use this add-on or its UniMGS reproduction in your work, please cite:
+If you use the UniMGS method or the corresponding research ideas, please cite the original paper:
 
 ```bibtex
 @inproceedings{xiao2026unimgs,
@@ -160,9 +282,12 @@ If you use this add-on or its UniMGS reproduction in your work, please cite:
 
 ## License
 
-GPL-2.0-or-later — see [LICENSE](LICENSE). The add-on is an independent work; it does not contain or modify KIRI 3DGS Render source code.
+GPL-2.0-or-later — see [LICENSE](LICENSE).
+
+Gaussian Mesh Editor is an independent work and does not contain or modify KIRI 3DGS Render source code.
 
 ## Acknowledgements
 
-- [KIRI 3DGS Render](https://github.com/Kiri-Innovation/3dgs-render-blender-addon) — Gaussian splatting rendering engine this add-on interoperates with.
-- [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) (Kerbl et al., SIGGRAPH 2023) — the underlying radiance representation.
+- [KIRI 3DGS Render](https://github.com/xiaolongyuan/KIRI3DGS) — Gaussian splatting rendering / Blender integration used by the workflow.
+- [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) (Kerbl et al., SIGGRAPH 2023) — the underlying Gaussian representation.
+- [UniMGS](https://arxiv.org/html/2601.19233) — the proxy-based mesh–Gaussian deformation formulation reproduced and adapted in this project.
