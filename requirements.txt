@@ -1,0 +1,19 @@
+# Runtime
+
+The add-on has **no runtime dependencies beyond Blender's bundled NumPy**.
+The `unimags/` package is pure NumPy and `bpy` is only imported by the
+Blender glue modules.
+
+```
+numpy>=1.21
+```
+
+# Development / testing
+
+These are needed only to run the test suite in a plain Python interpreter
+(the Blender integration tests use Blender's own bundled Python, where
+NumPy already ships with Blender).
+
+```
+numpy>=1.21
+```

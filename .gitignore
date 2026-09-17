@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test artifacts
+_t*.obj
+_t*.ply
+_t*.txt
+_t*.log
+*.npz
+!tests/data/*.npz
+
+# Blender
+*.blend
+*.blend1
+*.blend2
+
+# Packaging (releases live in the GitHub release tab, not the repo)
+gaussian_mesh_editor_*.zip
+*.zip
+
+# KIRI add-on (third-party, not part of this repository)
+kiri_plugin/
+3dgs_render_by_kiri_engine_*.zip
+
+# Local debug / probe scripts
+_probe_*.py
+_test_*.py
+_deform_out.txt
+apply_deform_diag.py
+diagnose_gme.py
+repro_*.py
+_check_*.py
+_compare_*.py
+
+# Docs/source material (paper PDFs are large; keep in wiki/releases)
+*.pdf
+_unimgs_fulltext.txt
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

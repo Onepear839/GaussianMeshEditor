@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="640" viewBox="0 0 860 640" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b6ee1"/>
+    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6f7ff"/>
+      <stop offset="1" stop-color="#eef0fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="860" height="640" rx="14" fill="url(#bg)"/>
+  <text x="430" y="34" text-anchor="middle" font-size="19" font-weight="700" fill="#2b2f5c">UniMGS Deformation Pipeline (Gaussian Mesh Editor)</text>
+
+  <!-- Step 0: input -->
+  <rect x="300" y="56" width="260" height="46" rx="10" fill="#e8e5ff" stroke="#7c6cf0" stroke-width="1.5"/>
+  <text x="430" y="74" text-anchor="middle" font-size="13" font-weight="600" fill="#4a3fc0">Gaussian cloud (μ, R, S)</text>
+  <text x="430" y="92" text-anchor="middle" font-size="11" fill="#6a62b8">KIRI gaussian_data · world space</text>
+
+  <path d="M 430 102 L 430 128" stroke="#5b6ee1" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 1 -->
+  <rect x="300" y="132" width="260" height="46" rx="10" fill="#ffffff" stroke="#5b6ee1" stroke-width="1.5"/>
+  <text x="430" y="150" text-anchor="middle" font-size="13" font-weight="600" fill="#2b2f5c">1 · BBX — 8 oriented corners / Gaussian</text>
+  <text x="430" y="168" text-anchor="middle" font-size="11" fill="#6b7280">Cᵢ = μ + k·R·(±s)</text>
+
+  <path d="M 430 178 L 430 204" stroke="#5b6ee1" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 2 -->
+  <rect x="300" y="208" width="260" height="46" rx="10" fill="#ffffff" stroke="#5b6ee1" stroke-width="1.5"/>
+  <text x="430" y="226" text-anchor="middle" font-size="13" font-weight="600" fill="#2b2f5c">2 · Cameras</text>
+  <text x="430" y="244" text-anchor="middle" font-size="11" fill="#6b7280">scene cameras + virtual surround</text>
+
+  <path d="M 430 254 L 430 280" stroke="#5b6ee1" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 3 -->
+  <rect x="300" y="284" width="260" height="46" rx="10" fill="#ffffff" stroke="#5b6ee1" stroke-width="1.5"/>
+  <text x="430" y="302" text-anchor="middle" font-size="13" font-weight="600" fill="#2b2f5c">3 · Rays — 1 per corner per camera</text>
+  <text x="430" y="320" text-anchor="middle" font-size="11" fill="#6b7280">BVH raycast vs proxy mesh</text>
+
+  <path d="M 430 330 L 430 356" stroke="#5b6ee1" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 4 -->
+  <rect x="300" y="360" width="260" height="46" rx="10" fill="#ffffff" stroke="#5b6ee1" stroke-width="1.5"/>
+  <text x="430" y="378" text-anchor="middle" font-size="13" font-weight="600" fill="#2b2f5c">4 · Bind — closest face + barycentric</text>
+  <text x="430" y="396" text-anchor="middle" font-size="11" fill="#6b7280">kept per corner across cameras</text>
+
+  <path d="M 430 406 L 430 432" stroke="#5b6ee1" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 5 -->
+  <rect x="300" y="436" width="260" height="46" rx="10" fill="#ffffff" stroke="#5b6ee1" stroke-width="1.5"/>
+  <text x="430" y="454" text-anchor="middle" font-size="13" font-weight="600" fill="#2b2f5c">5 · Binding cache (npz-persisted)</text>
+  <text x="430" y="472" text-anchor="middle" font-size="11" fill="#6b7280">flat NumPy arrays · rest topology</text>
+
+  <path d="M 430 482 L 430 508" stroke="#5b6ee1" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Steps 6-8 group -->
+  <rect x="250" y="512" width="360" height="104" rx="12" fill="#dfe7ff" stroke="#5b6ee1" stroke-width="1.5"/>
+  <text x="430" y="532" text-anchor="middle" font-size="13" font-weight="700" fill="#2b2f5c">6–8 · Deformation transfer (Eq. 12/13)</text>
+  <text x="430" y="553" text-anchor="middle" font-size="11.5" fill="#3d4a8c">6  vertex offset → Rⱼ·Sⱼ (polar decomposition)</text>
+  <text x="430" y="572" text-anchor="middle" font-size="11.5" fill="#3d4a8c">7  corner: barycentric interpolation of D, log R, S</text>
+  <text x="430" y="591" text-anchor="middle" font-size="11.5" fill="#3d4a8c">8  Gaussian: R′ = exp(mean log Rᵢ), S′ = mean Sᵢ, μ′ = μ + mean Δᵢ</text>
+  <text x="430" y="610" text-anchor="middle" font-size="10.5" fill="#5d6aa8">10 · covariance Σ′ = R′S′Σ(R′S′)ᵀ → re-factorized</text>
+
+  <!-- output arrow down -->
+  <path d="M 430 616 L 430 634" stroke="#5b6ee1" stroke-width="0" />
+
+  <!-- right rail: KIRI write-back -->
+  <rect x="620" y="150" width="210" height="120" rx="12" fill="#ffe9d6" stroke="#f0a04b" stroke-width="1.5"/>
+  <text x="725" y="174" text-anchor="middle" font-size="12.5" font-weight="700" fill="#a05a12">Write-back</text>
+  <text x="725" y="194" text-anchor="middle" font-size="11" fill="#8a5a28">KIRI runtime cache</text>
+  <text x="725" y="212" text-anchor="middle" font-size="11" fill="#8a5a28">or object IDProperty</text>
+  <text x="725" y="232" text-anchor="middle" font-size="10.5" fill="#b07a3f">local space · (quat, linear scale)</text>
+  <text x="725" y="252" text-anchor="middle" font-size="10.5" fill="#b07a3f">viewport renders instantly</text>
+  <path d="M 560 173 L 616 173" stroke="#f0a04b" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="5 3"/>
+
+  <!-- left rail: GPU -->
+  <rect x="30" y="380" width="200" height="120" rx="12" fill="#e3f7ec" stroke="#3fbf7f" stroke-width="1.5"/>
+  <text x="130" y="404" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1f7a4d">Optional GPU stage</text>
+  <text x="130" y="424" text-anchor="middle" font-size="11" fill="#2e7d55">GLSL compute shader</text>
+  <text x="130" y="442" text-anchor="middle" font-size="11" fill="#2e7d55">for vertex deformation</text>
+  <text x="130" y="460" text-anchor="middle" font-size="11" fill="#2e7d55">gradient (slowest part)</text>
+  <text x="130" y="480" text-anchor="middle" font-size="10.5" fill="#4a9a70">exact swap of CPU step 6</text>
+  <path d="M 234 440 L 296 440" stroke="#3fbf7f" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="5 3"/>
+</svg>

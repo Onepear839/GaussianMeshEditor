@@ -1,0 +1,12 @@
+schema_version = "1.0.0"
+id = "gaussian_mesh_editor"
+version = "0.19.15"
+name = "Gaussian Mesh Editor"
+tagline = "Proxy Mesh alignment for KIRI 3DGS Render"
+maintainer = "GME"
+type = "add-on"
+tags = ["3D View"]
+blender_version_min = "5.1.0"
+license = [
+"SPDX:GPL-2.0-or-later",
+]
